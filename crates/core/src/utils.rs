@@ -16,7 +16,8 @@ pub enum ClientState {
 pub struct Client {
     pub ip: String,
     pub state: ClientState,
-    pub action: String
+    pub action: String,
+    pub result: String
 }
 
 impl Client {
@@ -28,6 +29,12 @@ impl Client {
     }
     pub fn get_action_mut(&mut self) -> &mut String {
         &mut self.action
+    }
+    pub fn get_result_mut(&mut self) -> &mut String {
+        &mut self.result
+    }
+    pub fn get_result(&self) -> &String {
+        &self.result
     }
     pub fn get_action(&self) -> &String {
         &self.action
@@ -65,13 +72,14 @@ impl Request {
     }
 }
 
-pub fn send_response<'a>(mut stream: &TcpStream, response: &Request) {
+pub fn send_response<'a>(mut stream: &TcpStream, response: &Request) -> bool{
     let serialized_response = response.serialize();
     let msg: &[u8] = &&serialized_response;
     match stream.write(msg) {
-        Ok(_) => {}
+        Ok(_) => true,
         Err(e) => {
-            println!("Failed to send data: {}", e)
+            println!("Failed to send data: {}", e);
+            false
         }
     }
 }
@@ -86,7 +94,7 @@ pub fn send_request<'a>(mut stream: &TcpStream, request: &Request) -> Request {
         }
     }
 
-    let mut data = [0 as u8; 100];
+    let mut data = [0 as u8; 1000];
 
     match stream.read(&mut data) {
         Ok(size) => {
@@ -120,7 +128,7 @@ pub fn send_request_check(mut stream: &TcpStream, request: &Request, response: &
         }
     }
 
-    let mut data = [0 as u8; 100];
+    let mut data = [0 as u8; 1000];
 
     match stream.read(&mut data) {
         Ok(size) => {
@@ -169,6 +177,24 @@ impl fmt::Display for Client {
         write!(f, "{} {}", self.ip, self.state)
     }
 }
+
+pub static TRY_ESTABLISH_CONNECTION: Request = Request {
+    syl: 'C',
+    num: '0',
+    msg: String::new(),
+};
+
+pub static CONNECTION_ESTABLISHED: Request = Request {
+    syl: 'C',
+    num: '1',
+    msg: String::new(),
+};
+
+pub static CONNECTION_CLOSED: Request = Request {
+    syl: 'C',
+    num: '2',
+    msg: String::new(),
+};
 
 pub static REQUEST_NONE: Request = Request {
     syl: 'N',
@@ -224,6 +250,12 @@ pub static ACTION_RESULT: Request = Request {
     msg: String::new(),
 };
 
+pub static GET_ACTION_RESULT: Request = Request {
+    syl: 'A',
+    num: '6',
+    msg: String::new(),
+};
+
 pub static ACTION_NONE: Request = Request {
     syl: 'A',
     num: '3',
@@ -245,5 +277,17 @@ pub static LOGIN_RESPONSE: Request = Request {
 pub static LOGIN_ERROR: Request = Request {
     syl: 'L',
     num: '2',
+    msg: String::new(),
+};
+
+pub static USER_REQUEST: Request = Request {
+    syl: 'U',
+    num: '0',
+    msg: String::new(),
+};
+
+pub static USER_RESPONSE: Request = Request {
+    syl: 'U',
+    num: '1',
     msg: String::new(),
 };
