@@ -1,8 +1,6 @@
 use bnet_core::utils::{self};
-use std::io::{Read, Write};
 use std::net::TcpStream;
-use std::str::from_utf8;
-
+// 145 170 174 175 168 224 174 162 160 173 174 32 228 160 169 171 174 162 58 32 32 32 32 32 32 32 32 32 49 46 13 10
 fn main() {
     match TcpStream::connect("localhost:7878") {
         Ok(mut stream) => {

@@ -3,27 +3,14 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::str::from_utf8;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum ClientState {
-    Unconnected,
-    Connected,
-    Loged,
-    Act,
-    None,
-}
-
 #[derive(Debug)]
 pub struct Client {
     pub ip: String,
-    pub state: ClientState,
     pub action: String,
     pub result: String
 }
 
 impl Client {
-    pub fn get_state_mut(&mut self) -> &mut ClientState {
-        &mut self.state
-    }
     pub fn get_ip_mut(&mut self) -> &mut String {
         &mut self.ip
     }
@@ -38,9 +25,6 @@ impl Client {
     }
     pub fn get_action(&self) -> &String {
         &self.action
-    }
-    pub fn get_state(&self) -> &ClientState {
-        &self.state
     }
     pub fn get_ip(&self) -> &String {
         &self.ip
@@ -154,18 +138,6 @@ impl PartialEq for Request {
     }
 }
 
-impl fmt::Display for ClientState {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match &self {
-            ClientState::Unconnected => write!(f, "Unconnected"),
-            ClientState::Connected => write!(f, "Connected"),
-            ClientState::Loged => write!(f, "Loged"),
-            ClientState::Act => write!(f, "Act"),
-            ClientState::None => write!(f, "None"),
-        }
-    }
-}
-
 impl fmt::Display for Request {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}{} {}", self.syl, self.num, self.msg)
@@ -174,7 +146,7 @@ impl fmt::Display for Request {
 
 impl fmt::Display for Client {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.ip, self.state)
+        write!(f, "{} {} {}", self.ip, self.action, self.result)
     }
 }
 

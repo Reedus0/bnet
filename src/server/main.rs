@@ -1,6 +1,6 @@
-use bnet_core::utils::{self, Client, ClientState};
-use std::io::{Read, Write};
-use std::net::{Shutdown, TcpListener, TcpStream};
+use bnet_core::utils;
+use std::io::Read;
+use std::net::{TcpListener, TcpStream};
 use std::str::from_utf8;
 use std::thread;
 
@@ -15,7 +15,7 @@ fn main() {
                 Ok(stream) => {
                     println!("New connection: {}", stream.peer_addr().unwrap());
 
-                    scope.spawn(|| unsafe { handle_client(stream) });
+                    scope.spawn(|| handle_client(stream));
                 }
                 Err(e) => {
                     println!("Error: {}", e);
@@ -30,7 +30,6 @@ fn main() {
 fn handle_client(mut stream: TcpStream) {
     let new_user = utils::Client {
         ip: stream.peer_addr().unwrap().to_string(),
-        state: utils::ClientState::Unconnected,
         action: String::new(),
         result: String::new(),
     };
@@ -39,7 +38,7 @@ fn handle_client(mut stream: TcpStream) {
 
     while match stream.read(&mut data) {
         Ok(size) => {
-            if (data[0] == 0) {
+            if data[0] == 0 {
                 return;
             };
             println!(
@@ -71,10 +70,6 @@ fn handle_client(mut stream: TcpStream) {
                 if request.get_msg() == &String::from("12345678") {
                     utils::send_response(&stream, &utils::LOGIN_RESPONSE);
                     data = [0 as u8; 1000];
-                    set_state(
-                        utils::ClientState::Loged,
-                        stream.peer_addr().unwrap().to_string(),
-                    )
                 } else {
                     utils::send_response(&stream, &utils::LOGIN_ERROR);
                     data = [0 as u8; 1000];
@@ -88,14 +83,13 @@ fn handle_client(mut stream: TcpStream) {
                     msg: format!("{:?}", unsafe { &users }),
                 };
 
-                &utils::send_response(&stream, &USER_RESPONSE);
+                utils::send_response(&stream, &USER_RESPONSE);
                 data = [0 as u8; 1000];
             }
 
             if request == utils::ACTION_FOR {
                 let msg: Vec<&str> = request.get_msg().split(" ").collect();
                 set_action(msg[1..].join(" ").to_string(), msg[0].to_string());
-                set_state(utils::ClientState::Act, msg[0].to_string());
                 set_result("".to_string(), msg[0].to_string());
                 utils::send_response(&stream, &utils::ACTION_FOR_OK);
                 data = [0 as u8; 1000];
@@ -103,10 +97,6 @@ fn handle_client(mut stream: TcpStream) {
 
             if request == utils::ACTION_RESULT {
                 set_action("".to_string(), stream.peer_addr().unwrap().to_string());
-                set_state(
-                    utils::ClientState::Unconnected,
-                    stream.peer_addr().unwrap().to_string(),
-                );
                 set_result(
                     request.get_msg().to_string(),
                     stream.peer_addr().unwrap().to_string(),
@@ -130,7 +120,7 @@ fn handle_client(mut stream: TcpStream) {
 
             if request == utils::ACTION_REQUEST {
                 let current_user = get_user(stream.peer_addr().unwrap().to_string());
-                if current_user.state == utils::ClientState::Act {
+                if current_user.action != "" {
                     let ACTION_RESPONSE: utils::Request = utils::Request {
                         syl: 'A',
                         num: '2',
@@ -154,14 +144,6 @@ fn handle_client(mut stream: TcpStream) {
     } {}
 }
 
-fn set_state(state: ClientState, ip: String) {
-    for client in unsafe { &mut users } {
-        if client.ip == ip {
-            *client.get_state_mut() = state;
-        }
-    }
-}
-
 fn set_action(action: String, ip: String) {
     for client in unsafe { &mut users } {
         if client.ip == ip {
@@ -182,7 +164,7 @@ fn get_user(ip: String) -> &'static mut utils::Client {
     let mut index = 0;
     unsafe {
         for i in 1..users.len() {
-            if (users[i].ip == ip) {
+            if users[i].ip == ip {
                 index = i;
             }
         }
