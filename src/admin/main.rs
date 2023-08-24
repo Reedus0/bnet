@@ -1,32 +1,35 @@
-use bnet_core::utils::{self};
+use bnet_core::{
+    models, protocol,
+    utils::{self}, config,
+};
 use std::net::TcpStream;
-// 145 170 174 175 168 224 174 162 160 173 174 32 228 160 169 171 174 162 58 32 32 32 32 32 32 32 32 32 49 46 13 10
+
 fn main() {
-    match TcpStream::connect("localhost:7878") {
-        Ok(mut stream) => {
+    match TcpStream::connect(config::IP) {
+        Ok(stream) => {
             println!("Successfully connected to server in port 7878");
 
             let established_connection = utils::send_request_check(
                 &stream,
-                &utils::TRY_ESTABLISH_CONNECTION,
-                &utils::CONNECTION_ESTABLISHED,
+                &protocol::TRY_ESTABLISH_CONNECTION,
+                &protocol::CONNECTION_ESTABLISHED,
             );
 
             if established_connection {
                 println!("Enter password: ");
                 let mut password = String::new();
                 std::io::stdin().read_line(&mut password).unwrap();
-                let LOGIN_REQUEST: utils::Request = utils::Request {
+                let LOGIN_REQUEST: models::Request = models::Request {
                     syl: 'L',
                     num: '0',
                     msg: password.trim().to_string(),
                 };
                 println!("{}", LOGIN_REQUEST);
                 let logined =
-                    utils::send_request_check(&stream, &LOGIN_REQUEST, &utils::LOGIN_RESPONSE);
+                    utils::send_request_check(&stream, &LOGIN_REQUEST, &protocol::LOGIN_RESPONSE);
                 if logined {
                     println!("Logined");
-                    utils::send_request(&stream, &utils::USER_REQUEST);
+                    utils::send_request(&stream, &protocol::USER_REQUEST);
                     loop {
                         println!("Enter IP: ");
                         let mut ip: String = String::new();
@@ -34,14 +37,14 @@ fn main() {
                         println!("Enter action: ");
                         let mut action: String = String::new();
                         std::io::stdin().read_line(&mut action).unwrap();
-                        let ACTION_FOR: utils::Request = utils::Request {
+                        let ACTION_FOR: models::Request = models::Request {
                             syl: 'A',
                             num: '1',
                             msg: format!("{} {}", ip.trim(), action.trim()),
                         };
                         utils::send_request(&stream, &ACTION_FOR);
                         std::thread::sleep(std::time::Duration::from_millis(10000));
-                        let GET_ACTION_RESULT: utils::Request = utils::Request {
+                        let GET_ACTION_RESULT: models::Request = models::Request {
                             syl: 'A',
                             num: '6',
                             msg: ip.trim().to_string(),
@@ -54,8 +57,8 @@ fn main() {
             }
             utils::send_request_check(
                 &stream,
-                &utils::CONNECTION_CLOSED,
-                &utils::CONNECTION_CLOSED,
+                &protocol::CONNECTION_CLOSED,
+                &protocol::CONNECTION_CLOSED,
             );
         }
         Err(e) => {
