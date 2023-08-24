@@ -1,13 +1,10 @@
-use bnet_core::{
-    models, protocol,
-    utils::{self}, config,
-};
+use bnet_core::{config, models, protocol, utils};
 use std::net::TcpStream;
 
 fn main() {
     match TcpStream::connect(config::IP) {
         Ok(stream) => {
-            println!("Successfully connected to server in port 7878");
+            println!("Successfully connected");
 
             let established_connection = utils::send_request_check(
                 &stream,
@@ -24,7 +21,6 @@ fn main() {
                     num: '0',
                     msg: password.trim().to_string(),
                 };
-                println!("{}", LOGIN_REQUEST);
                 let logined =
                     utils::send_request_check(&stream, &LOGIN_REQUEST, &protocol::LOGIN_RESPONSE);
                 if logined {

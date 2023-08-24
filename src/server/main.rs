@@ -9,7 +9,7 @@ static mut USERS: Vec<models::Client> = Vec::new();
 fn main() {
     let listener = TcpListener::bind(config::IP).unwrap();
 
-    thread::scope(|scope: &thread::Scope<'_, '_>| {
+    thread::scope(|scope| {
         for stream in listener.incoming() {
             match stream {
                 Ok(stream) => {
